@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Note Taking App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-image: linear-gradient(to right, #ff9966, #ff5e62);
+      font-family: 'Lato', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    #noteDialog {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      width: 400px;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: none;
+      z-index: 999999; /* hide by default */
+    }
+
+    #noteDialog h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #noteDialog input,
+    #noteDialog textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #f4f4f4;
+      z-index: 9999;
+    }
+
+    #noteDialog button {
+      background-color: #ff5e62;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    #noteDialog button:hover {
+      background-color: #ff404b;
+    }
+
+    #cardsGrid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 50px;
+    }
+
+    .card {
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      margin: 10px;
+      padding: 20px;
+      position: relative;
+      cursor: move;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-weight: bold; /* Make title bolder */
+    }
+
+    .card p {
+      margin: 0;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+    }
+
+    .delete-btn svg {
+      fill: #ff5e62;
+      width: 24px;
+      height: 24px;
+    }
+
+    .delete-btn:hover svg {
+      fill: #ff404b;
+    }
+
+    .delete-btn svg path {
+      stroke: #fff;
+      stroke-width: 2;
+    }
+
+    .edit-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      cursor: pointer;
+    }
+
+    .edit-btn svg {
+      fill: #007bff;
+      width: 24px;
+      height: 24px;
+    }
+
+    .edit-btn:hover svg {
+      fill: #0056b3;
+    }
+
+    #addNoteBtn {
+      background-color: #ff5e62;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 20px;
+      cursor: pointer;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+    }
+
+    #addNoteBtn:hover {
+      background-color: #ff404b;
+    }
+  </style>
+</head>
+<body>
+  <button id="addNoteBtn">Add Note</button>
+
+  <div id="noteDialog" class="dialog">
+    <div class="dialog-content">
+      <span class="close">&times;</span>
+      <input type="text" id="noteTitle" placeholder="Title">
+      <textarea id="noteContent" placeholder="Note"></textarea>
+      <button id="saveNoteBtn">Save Note</button>
+    </div>
+  </div>
+
+  <div id="cardsGrid"></div>
+
+  <script>
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    const noteDialog = document.getElementById('noteDialog');
+    const closeBtn = document.querySelector('.close');
+    const noteTitleInput = document.getElementById('noteTitle');
+    const noteContentInput = document.getElementById('noteContent');
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
+    const cardsGrid = document.getElementById('cardsGrid');
+    let editingCard = null;
+    let editingId = null;
+
+    function getCurrentTimeStamp() {
+      const now = new Date();
+      return now.toLocaleString();
+    }
+
+    function isMorning() {
+      const now = new Date();
+      return now.getHours() < 11;
+    }
+
+    function getMorningSymbol() {
+      return isMorning() ? '<div class="morning-symbol">ॐ</div>' : '';
+    }
+
+    function saveNotesToStorage(notes) {
+      // Save notes to local storage
+      try {
+        localStorage.setItem('notes', JSON.stringify(notes));
+        console.log('Notes saved to local storage:', notes);
+      } catch (error) {
+        console.error('Error saving notes to local storage:', error.message);
+        alert('Failed to save notes to local storage. Please try again.');
+      }
+
+      // Save notes to IndexedDB
+      try {
+        // Your IndexedDB saving logic here
+        console.log('Notes saved to IndexedDB:', notes);
+      } catch (error) {
+        console.error('Error saving notes to IndexedDB:', error.message);
+        alert('Failed to save notes to IndexedDB. Please try again.');
+      }
+    }
+
+    function getNotesFromStorage() {
+      // Retrieve notes from local storage
+      try {
+        const notes = localStorage.getItem('notes');
+        console.log('Notes retrieved from local storage:', notes);
+        return notes ? JSON.parse(notes) : [];
+      } catch (error) {
+        console.error('Error retrieving notes from local storage:', error.message);
+        return [];
+      }
+    }
+
+    function displayNotes() {
+      const notes = getNotesFromStorage();
+      cardsGrid.innerHTML = '';
+      notes.forEach((note, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.innerHTML = `<div class="time-stamp">${note.timeStamp}</div>${getMorningSymbol(note.timeStamp)}<div class="editable-title">${note.title}</div><div class="note-content">${note.content}</div><button onclick="deleteNote(${index})">Delete</button>`;
+        cardsGrid.appendChild(cardElement);
+      });
+    }
+
+    function deleteNote(index) {
+      const notes = getNotesFromStorage();
+      notes.splice(index, 1);
+      saveNotesToStorage(notes);
+      displayNotes();
+    }
+
+    addNoteBtn.addEventListener('click', () => {
+      noteDialog.style.display = 'block';
+      noteTitleInput.value = '';
+      noteContentInput.value = '';
+      editingCard = null;
+    });
+
+    closeBtn.addEventListener('click', () => {
+      noteDialog.style.display = 'none';
+    });
+
+    saveNoteBtn.addEventListener('click', () => {
+      const title = noteTitleInput.value.trim();
+      const content = noteContentInput.value.trim();
+      const timeStamp = getCurrentTimeStamp();
+      const morningSymbol = getMorningSymbol();
+
+      if (title && content) {
+        const notes = getNotesFromStorage();
+        const noteData = { title, content, timeStamp, morningSymbol };
+
+        if (editingId !== null) {
+          notes[editingId] = noteData;
+        } else {
+          notes.push(noteData);
+        }
+
+        saveNotesToStorage(notes);
+        displayNotes();
+        noteDialog.style.display = 'none';
+      } else {
+        alert('Please enter both title and content for the note.');
+      }
+    });
+
+    // Initial display of notes
+    displayNotes();
+  </script>
+</body>
+</html>
