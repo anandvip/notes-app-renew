@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Note Taking App</title>
   <style>
-    * {
+  * {
       box-sizing: border-box;
     }
 
@@ -20,7 +20,7 @@
       padding: 0;
     }
 
-    #noteDialog {
+    .dialog {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -31,16 +31,16 @@
       padding: 30px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       display: none;
-      z-index: 999999; /* hide by default */
+      z-index: 999999;
     }
 
-    #noteDialog h2 {
+    .dialog h2 {
       text-align: center;
       margin-bottom: 20px;
     }
 
-    #noteDialog input,
-    #noteDialog textarea {
+    .dialog input,
+    .dialog textarea {
       width: 100%;
       padding: 10px;
       margin-bottom: 10px;
@@ -50,7 +50,7 @@
       z-index: 9999;
     }
 
-    #noteDialog button {
+    .dialog button {
       background-color: #ff5e62;
       color: #ffffff;
       border: none;
@@ -59,7 +59,7 @@
       cursor: pointer;
     }
 
-    #noteDialog button:hover {
+    .dialog button:hover {
       background-color: #ff404b;
     }
 
@@ -84,52 +84,48 @@
     .card h3 {
       margin-top: 0;
       margin-bottom: 10px;
-      font-weight: bold; /* Make title bolder */
+      font-weight: bold;
     }
 
     .card p {
       margin: 0;
     }
 
-    .delete-btn {
+    .delete-btn,
+    .edit-btn {
       background: none;
       border: none;
       position: absolute;
       top: 10px;
-      right: 10px;
       cursor: pointer;
     }
 
-    .delete-btn svg {
-      fill: #ff5e62;
+    .delete-btn svg,
+    .edit-btn svg {
       width: 24px;
       height: 24px;
+    }
+
+    .delete-btn svg path {
+      fill: #ff5e62;
+      stroke: #fff;
+      stroke-width: 2;
+    }
+
+    .edit-btn svg path {
+      fill: #007bff;
     }
 
     .delete-btn:hover svg {
       fill: #ff404b;
     }
 
-    .delete-btn svg path {
-      stroke: #fff;
-      stroke-width: 2;
+    .edit-btn:hover svg {
+      fill: #0056b3;
     }
 
     .edit-btn {
-      position: absolute;
-      bottom: 10px;
       right: 10px;
-      cursor: pointer;
-    }
-
-    .edit-btn svg {
-      fill: #007bff;
-      width: 24px;
-      height: 24px;
-    }
-
-    .edit-btn:hover svg {
-      fill: #0056b3;
     }
 
     #addNoteBtn {
@@ -142,7 +138,6 @@
       position: fixed;
       bottom: 20px;
       right: 20px;
-      z-index:999999
     }
 
     #addNoteBtn:hover {
@@ -151,87 +146,152 @@
   </style>
 </head>
 <body>
+  <header id="welcomeHeader"></header>
   <button id="addNoteBtn">Add Note</button>
+
+  <!-- Special dialog to capture user's name -->
+  <div id="userNameDialog" class="dialog">
+    <div class="dialog-content">
+      <span class="close">&times;</span>
+      <input type="text" id="userNameInput" placeholder="Enter your name">
+      <button id="saveUserNameBtn">Save Name</button>
+    </div>
+  </div>
 
   <div id="noteDialog" class="dialog">
     <div class="dialog-content">
       <span class="close">&times;</span>
-      <input type="text" id="noteTitle" placeholder="Title">
-      <textarea id="noteContent" placeholder="Note"></textarea>
+      <input type="text" id="noteTitleInput" placeholder="Note Title">
+      <textarea id="noteContentInput" placeholder="Note Content"></textarea>
       <button id="saveNoteBtn">Save Note</button>
     </div>
   </div>
 
   <div id="cardsGrid"></div>
 
+  <div id="overview"></div>
+
   <script>
-    const addNoteBtn = document.getElementById('addNoteBtn');
-    const noteDialog = document.getElementById('noteDialog');
-    const closeBtn = document.querySelector('.close');
-    const noteTitleInput = document.getElementById('noteTitle');
-    const noteContentInput = document.getElementById('noteContent');
-    const saveNoteBtn = document.getElementById('saveNoteBtn');
-    const cardsGrid = document.getElementById('cardsGrid');
-    let editingCard = null;
-    let editingId = null;
+    // Function to save user's name to local storage
+    function saveUserNameToStorage(name) {
+      localStorage.setItem('userName', name);
+    }
 
+    // Function to get user's name from local storage
+    function getUserNameFromStorage() {
+      return localStorage.getItem('userName');
+    }
+// Function to display user's name and overview
+    function displayWelcomeHeader() {
+      const userName = getUserNameFromStorage();
+      const welcomeHeader = document.getElementById('welcomeHeader');
+      const overview = document.getElementById('overview');
+      const itemsCount = countItems();
+      const wordsCount = countWords();
+
+      if (!userName) {
+        // Show user name dialog if not already captured
+        const userNameDialog = document.getElementById('userNameDialog');
+        userNameDialog.style.display = 'block';
+      } else {
+        // Show welcome header with user's name and overview
+        welcomeHeader.style.display = 'block';
+        welcomeHeader.querySelector('h2').textContent = `Welcome ${userName}!`;
+        overview.innerHTML = `<div>${getCurrentTimeStamp()}</div><section class="over"><h4>Your Notes Overview:</h4><p>Total Notes: ${itemsCount}</p><p>Total Words: ${wordsCount}</p></section>`;
+      }
+    }
+    // Function to display user's name and overview
+    function displayWelcomeHeader() {
+      const userName = getUserNameFromStorage();
+      const welcomeHeader = document.getElementById('welcomeHeader');
+      const overview = document.getElementById('overview');
+      const itemsCount = countItems();
+      const wordsCount = countWords();
+
+      if (!userName) {
+        // Show user name dialog if not already captured
+        const userNameDialog = document.getElementById('userNameDialog');
+        userNameDialog.style.display = 'block';
+      } else {
+        // Show welcome header with user's name and overview
+        welcomeHeader.innerHTML = `<h2>Welcome ${userName}!</h2>`;
+        overview.innerHTML = `<div>${getCurrentTimeStamp()}</div><section class="over"><h4>Your Notes Overview:</h4><p>Total Notes: ${itemsCount}</p><p>Total Words: ${wordsCount}</p></section>`;
+      }
+    }
+
+    // Function to get current timestamp
     function getCurrentTimeStamp() {
-      const now = new Date();
-      return now.toLocaleString();
+      const date = new Date();
+      return date.toUTCString();
     }
 
-    function isMorning() {
-      const now = new Date();
-      return now.getHours() < 11;
+    // Function to count total items
+    function countItems() {
+      const notes = getNotesFromStorage();
+      return notes.length;
     }
 
-    function getMorningSymbol() {
-      return isMorning() ? '<div class="morning-symbol">ॐ</div>' : '';
+    // Function to count total words
+    function countWords() {
+      const notes = getNotesFromStorage();
+      let totalWords = 0;
+      notes.forEach(note => {
+        totalWords += note.content.split(' ').length;
+      });
+      return totalWords;
     }
 
+    // Function to get morning symbol based on timestamp
+    function getMorningSymbol(timestamp) {
+      // Implement your logic here to determine morning symbol
+      // For now, returning an empty string
+      return '';
+    }
+
+    // Add event listener to save user's name
+    document.addEventListener('DOMContentLoaded', () => {
+      const saveUserNameBtn = document.getElementById('saveUserNameBtn');
+      saveUserNameBtn.addEventListener('click', () => {
+        const userName = document.getElementById('userNameInput').value.trim();
+        if (userName) {
+          saveUserNameToStorage(userName);
+          const userNameDialog = document.getElementById('userNameDialog');
+          userNameDialog.style.display = 'none';
+          displayWelcomeHeader(); // Update welcome header after capturing name
+        } else {
+          alert('Please enter your name.');
+        }
+      });
+    });
+
+    // Call function to display welcome header and overview on page load
+    displayWelcomeHeader();
+
+    // Function to save notes to local storage
     function saveNotesToStorage(notes) {
-      // Save notes to local storage
-      try {
-        localStorage.setItem('notes', JSON.stringify(notes));
-        console.log('Notes saved to local storage:', notes);
-      } catch (error) {
-        console.error('Error saving notes to local storage:', error.message);
-        alert('Failed to save notes to local storage. Please try again.');
-      }
-
-      // Save notes to IndexedDB
-      try {
-        // Your IndexedDB saving logic here
-        console.log('Notes saved to IndexedDB:', notes);
-      } catch (error) {
-        console.error('Error saving notes to IndexedDB:', error.message);
-        alert('Failed to save notes to IndexedDB. Please try again.');
-      }
+      localStorage.setItem('notes', JSON.stringify(notes));
     }
 
+    // Function to get notes from local storage
     function getNotesFromStorage() {
-      // Retrieve notes from local storage
-      try {
-        const notes = localStorage.getItem('notes');
-        console.log('Notes retrieved from local storage:', notes);
-        return notes ? JSON.parse(notes) : [];
-      } catch (error) {
-        console.error('Error retrieving notes from local storage:', error.message);
-        return [];
-      }
+      const notes = localStorage.getItem('notes');
+      return notes ? JSON.parse(notes) : [];
     }
 
+    // Function to display notes
     function displayNotes() {
       const notes = getNotesFromStorage();
+      const cardsGrid = document.getElementById('cardsGrid');
       cardsGrid.innerHTML = '';
       notes.forEach((note, index) => {
         const cardElement = document.createElement('div');
         cardElement.classList.add('card');
-        cardElement.innerHTML = `<div class="time-stamp">${note.timeStamp}</div>${getMorningSymbol(note.timeStamp)}<div class="editable-title">${note.title}</div><div class="note-content">${note.content}</div><button onclick="deleteNote(${index})">Delete</button>`;
+        cardElement.innerHTML = `<div class="time-stamp">${note.timeStamp}</div>${getMorningSymbol(note.timeStamp)}<div class="editable-title">${note.title}</div><div class="note-content">${note.content}</div><button onclick="deleteNote(${index})">Delete</button><button onclick="editNote(${index})" class="edit-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M20.71 4.04c-.39-.39-1.02-.39-1.41 0l-2.83 2.83-9.19 9.19-3.54.51.51-3.54 9.19-9.19 2.83-2.83c.39-.39.39-1.02 0-1.41L5.63.04c-.19-.19-.45-.29-.71-.29s-.52.1-.71.29L2.04 1.46c-.39.39-.39 1.02 0 1.41l3.54 3.54-.49 3.5 3.51-3.52 3.52.49-3.5-3.51 3.54-3.54c.19-.19.29-.45.29-.71s-.1-.52-.29-.71zM7 21c-1.1 0-2-.9-2-2s.9-2 2-2h8c1.1 0 2 .9 2 2s-.9 2-2 2H7zm10-8c0 1.1-.9 2-2 2H9c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v8z"/></svg></button>`;
         cardsGrid.appendChild(cardElement);
       });
     }
 
+    // Function to delete a note
     function deleteNote(index) {
       const notes = getNotesFromStorage();
       notes.splice(index, 1);
@@ -239,17 +299,19 @@
       displayNotes();
     }
 
-    addNoteBtn.addEventListener('click', () => {
+    // Function to edit a note
+    function editNote(index) {
+      const notes = getNotesFromStorage();
+      const { title, content } = notes[index];
+      noteTitleInput.value = title;
+      noteContentInput.value = content;
+      editingId = index;
+      const noteDialog = document.getElementById('noteDialog');
       noteDialog.style.display = 'block';
-      noteTitleInput.value = '';
-      noteContentInput.value = '';
-      editingCard = null;
-    });
+    }
 
-    closeBtn.addEventListener('click', () => {
-      noteDialog.style.display = 'none';
-    });
-
+    // Function to save the edited note
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
     saveNoteBtn.addEventListener('click', () => {
       const title = noteTitleInput.value.trim();
       const content = noteContentInput.value.trim();
@@ -268,6 +330,7 @@
 
         saveNotesToStorage(notes);
         displayNotes();
+        const noteDialog = document.getElementById('noteDialog');
         noteDialog.style.display = 'none';
       } else {
         alert('Please enter both title and content for the note.');
